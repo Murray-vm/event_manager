@@ -15,14 +15,12 @@ def clean_phone_numbers(phone_number)
   phone_number.length.eql?(10) ? phone_number : nil
 end
 
-def time_targeting(registration_dates)
+def time_targeting(registration_dates, timeCode)
   grouped_hours = registration_dates.reduce(Hash.new(0)) do |result, reg_date|  
-    reg_hour = Time.strptime(reg_date, "%m/%d/%Y  %k:%M").hour
-    puts reg_hour
+    reg_hour = Time.strptime(reg_date, "%m/%d/%Y  %k:%M").strftime(timeCode)
     result[reg_hour] += 1
     result
-  end 
-  puts grouped_hours
+  end
   grouped_hours.max_by{|key, value| value}[0]
 end
 
@@ -62,19 +60,22 @@ contents = CSV.open(
 template_letter = File.read('form_letter.erb')
 erb_template = ERB.new template_letter
 
-# contents.each do |row|
-#   id = row[0]
-#   name = row[:first_name]
-#   zipcode = clean_zipcode(row[:zipcode])
-#   legislators = legislators_by_zipcode(zipcode)
-#   phone_number = clean_phone_numbers(row[:homephone])
+contents.each do |row|
+  id = row[0]
+  name = row[:first_name]
+  zipcode = clean_zipcode(row[:zipcode])
+  legislators = legislators_by_zipcode(zipcode)
+  phone_number = clean_phone_numbers(row[:homephone])
   
-#   form_letter = erb_template.result(binding)
+  form_letter = erb_template.result(binding)
   
-#   save_thank_you_letter(id,form_letter)
-# end
+  save_thank_you_letter(id,form_letter)
+end
 
   registration_dates = contents.read[:regdate]
-  best_reg_hours = time_targeting(registration_dates)
+  best_reg_hours = time_targeting(registration_dates, "%k")
   puts "The best registration hour is #{best_reg_hours}:00"
+
+  best_reg_wday = time_targeting(registration_dates, "%A")
+  puts "The best registration weekdat is #{best_reg_wday}s"
   
