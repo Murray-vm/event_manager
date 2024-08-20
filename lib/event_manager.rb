@@ -1,9 +1,29 @@
 require 'csv'
 require 'google/apis/civicinfo_v2'
 require 'erb'
+require 'time'
 
 def clean_zipcode(zipcode)
   zipcode.to_s.rjust(5,"0")[0..4]
+end
+
+def clean_phone_numbers(phone_number)
+  phone_number = phone_number.gsub(/\D/, '')
+  if phone_number.length.eql?(11) && phone_number[0].eql?('1')
+    phone_number[0] = '' 
+  end
+  phone_number.length.eql?(10) ? phone_number : nil
+end
+
+def time_targeting(registration_dates)
+  grouped_hours = registration_dates.reduce(Hash.new(0)) do |result, reg_date|  
+    reg_hour = Time.strptime(reg_date, "%m/%d/%Y  %k:%M").hour
+    puts reg_hour
+    result[reg_hour] += 1
+    result
+  end 
+  puts grouped_hours
+  grouped_hours.max_by{|key, value| value}[0]
 end
 
 def legislators_by_zipcode(zip)
@@ -42,13 +62,19 @@ contents = CSV.open(
 template_letter = File.read('form_letter.erb')
 erb_template = ERB.new template_letter
 
-contents.each do |row|
-  id = row[0]
-  name = row[:first_name]
-  zipcode = clean_zipcode(row[:zipcode])
-  legislators = legislators_by_zipcode(zipcode)
+# contents.each do |row|
+#   id = row[0]
+#   name = row[:first_name]
+#   zipcode = clean_zipcode(row[:zipcode])
+#   legislators = legislators_by_zipcode(zipcode)
+#   phone_number = clean_phone_numbers(row[:homephone])
+  
+#   form_letter = erb_template.result(binding)
+  
+#   save_thank_you_letter(id,form_letter)
+# end
 
-  form_letter = erb_template.result(binding)
-
-  save_thank_you_letter(id,form_letter)
-end
+  registration_dates = contents.read[:regdate]
+  best_reg_hours = time_targeting(registration_dates)
+  puts "The best registration hour is #{best_reg_hours}:00"
+  
